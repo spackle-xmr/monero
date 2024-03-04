@@ -30,12 +30,23 @@
 #ifndef __WINH_OBJ_H__
 #define __WINH_OBJ_H__
 
+#include <algorithm>
 #include <boost/chrono/duration.hpp>
+#include <boost/functional/hash/hash.hpp>
 #include <boost/thread/condition_variable.hpp>
+#include <boost/thread/detail/thread.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/thread.hpp>
+#include <cstdint>
+#include <queue>
+#include <set>
+#include <utility>
+#include <functional>
+#include <vector>
+#include "misc_log_ex.h"
+#include "misc_language.h"
 
 namespace epee
 {
@@ -148,6 +159,175 @@ namespace epee
       }
     }
   };
+
+
+  struct reader_writer_lock {
+
+    reader_writer_lock() noexcept :
+    wait_queue(),
+    readers() {};
+
+    bool start_read() noexcept {
+      if (have_write() || have_read()) {
+        return false;
+      }
+      lock_reader();
+      return true;
+    }
+
+    void end_read() noexcept {
+      unlock_reader();
+    }
+
+    bool start_write() noexcept {
+      if (have_write()) {
+        return false;
+      }
+      lock_and_change(boost::this_thread::get_id());
+      return true;
+    }
+
+    void end_write() noexcept {
+      unlock_writer();
+    }
+
+    bool have_write() noexcept {
+      boost::mutex::scoped_lock lock(internal_mutex);
+      return have_write(lock);
+    }
+
+    bool have_read() noexcept {
+      boost::mutex::scoped_lock lock(internal_mutex);
+      return have_read(lock);
+    }
+
+    ~reader_writer_lock() = default;
+    reader_writer_lock(reader_writer_lock&) = delete;
+    reader_writer_lock operator=(reader_writer_lock&) = delete;
+
+  private:
+
+    enum reader_writer_kind {
+      WRITER = 0,
+      READER = 1
+    };  
+
+    bool have_read(boost::mutex::scoped_lock& lock) noexcept {
+      return readers.find(boost::this_thread::get_id()) != readers.end();
+    }
+
+    bool have_write(boost::mutex::scoped_lock& lock) noexcept {
+      if (writer_id == boost::this_thread::get_id()) {
+        return true;
+      }
+      return false;
+    }
+
+    //  internal_mutex should be locked when calling this.
+    void wake_up() {
+      if (!wait_queue.size()) { 
+        return;
+      }
+
+      std::vector<std::reference_wrapper<boost::condition_variable>> wake_ups{};
+      while (wait_queue.size() && wait_queue.front().first == reader_writer_kind::READER) { // readers
+        auto thread_to_wake_up = wait_queue.front(); wait_queue.pop();
+        wake_ups.push_back(thread_to_wake_up.second);
+      }
+
+      if (!wake_ups.size()) { // writer
+        CHECK_AND_ASSERT_MES2(std::get<0>(wait_queue.front()) == reader_writer_kind::WRITER, " Waking up reader thread inside writer wake ups");
+        auto thread_to_wake_up = wait_queue.front(); wait_queue.pop();
+        wake_ups.push_back(thread_to_wake_up.second);
+      }
+
+      std::for_each(begin(wake_ups), end(wake_ups), 
+      [&] (std::reference_wrapper<boost::condition_variable> wait_condition_ref) {
+        wait_condition_ref.get().notify_one();
+      });
+    }
+
+    void unlock_writer() noexcept {
+      boost::mutex::scoped_lock lock(internal_mutex);      
+      CHECK_AND_ASSERT_MES2(!readers.size(), "Ending write transaction by " << boost::this_thread::get_id() << " while the are no  is not in write mode");
+      rw_mutex.unlock();
+      writer_id = boost::thread::id();
+      wake_up();      
+    }
+
+    void unlock_reader() noexcept {
+      boost::mutex::scoped_lock lock(internal_mutex);      
+      CHECK_AND_ASSERT_MES2(readers.size(), "Ending read transaction by " << boost::this_thread::get_id() << " while the lock is not in read mode");
+      rw_mutex.unlock_shared();
+      readers.erase(boost::this_thread::get_id());
+      if (!readers.size()) {
+        wake_up();
+      }      
+    }
+
+    void wait_in_queue(reader_writer_kind kind, boost::mutex::scoped_lock& lock) {
+      boost::condition_variable wait_condition;
+      wait_queue.push(std::make_pair(kind, std::reference_wrapper(wait_condition)));
+      wait_condition.wait(lock);
+    }
+
+    void entrance(reader_writer_kind kind) {
+      boost::mutex::scoped_lock lock(internal_mutex);
+      if (wait_queue.size()) { 
+        wait_in_queue(kind, lock);
+      }      
+    }
+
+    void lock_reader() noexcept {
+      entrance(reader_writer_kind::READER);
+      do {  
+        boost::mutex::scoped_lock lock(internal_mutex);
+        if (!rw_mutex.try_lock_shared()) {
+          wait_in_queue(reader_writer_kind::READER, lock);
+          continue;
+        }
+        readers.insert(boost::this_thread::get_id());
+        return; 
+      } while(true);
+    }
+
+    void lock_and_change(boost::thread::id new_owner) noexcept {
+      entrance(reader_writer_kind::WRITER);
+      do {  
+        boost::mutex::scoped_lock lock(internal_mutex);
+        if (!rw_mutex.try_lock()) {
+          wait_in_queue(reader_writer_kind::WRITER, lock);
+          continue;
+        }
+        writer_id = new_owner;
+        return; 
+      } while(true);
+    }
+
+    boost::mutex internal_mutex; // keep the data in RWLock consistent.
+    boost::shared_mutex rw_mutex;
+    std::set<boost::thread::id> readers;    
+    boost::thread::id writer_id;
+    typedef std::pair<reader_writer_kind, std::reference_wrapper<boost::condition_variable>> waiting_thread;
+    std::queue<waiting_thread> wait_queue;
+  };
+
+#define RWLOCK(lock)                                                         \
+  bool rw_release_required##lock = lock.start_write();                       \
+  epee::misc_utils::auto_scope_leave_caller scope_exit_handler##lock =       \
+      epee::misc_utils::create_scope_leave_handler([&]() {                   \
+        if (rw_release_required##lock)                                       \
+          lock.end_write();                                                  \
+      });                                                                    
+
+
+#define RLOCK(lock)                                                          \
+    bool r_release_required##lock = lock.start_read();                       \
+    epee::misc_utils::auto_scope_leave_caller scope_exit_handler##lock =     \
+        epee::misc_utils::create_scope_leave_handler([&]() {                 \
+          if (r_release_required##lock)                                      \
+            lock.end_read();                                                 \
+        });
 
 
 #define  CRITICAL_REGION_LOCAL(x) {} epee::critical_region_t<decltype(x)>   critical_region_var(x)
