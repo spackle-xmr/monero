@@ -220,7 +220,7 @@ namespace cryptonote
   };
 
   //-----------------------------------------------------------------------------------------------
-  core::core(i_cryptonote_protocol* pprotocol):
+  core::core(i_cryptonote_protocol* pprotocol, std::shared_ptr<cryptonote::t_startstophandler> startstophandler):
               m_bap(),
               m_mempool(m_bap.tx_pool),
               m_blockchain_storage(m_bap.blockchain),
@@ -235,7 +235,8 @@ namespace cryptonote
               m_disable_dns_checkpoints(false),
               m_update_download(0),
               m_nettype(UNDEFINED),
-              m_update_available(false)
+              m_update_available(false),
+              m_startstophandler(startstophandler)
   {
     m_checkpoints_updating.clear();
     set_cryptonote_protocol(pprotocol);
@@ -679,9 +680,16 @@ namespace cryptonote
     r = m_mempool.init(max_txpool_weight, m_nettype == FAKECHAIN);
     CHECK_AND_ASSERT_MES(r, false, "Failed to initialize memory pool");
 
+    session_start_height = get_current_blockchain_height();
+    session_start_txpool = m_blockchain_storage.get_txpool_tx_count();
+    MGINFO_YELLOW("Current height: " << session_start_height);
+    MGINFO_YELLOW("Current mempool size (local): " << session_start_txpool);
+    init_sync = true;
+
     // now that we have a valid m_blockchain_storage, we can clean out any
     // transactions in the pool that do not conform to the current fork
-    m_mempool.validate(m_blockchain_storage.get_current_hard_fork_version());
+    // Changed the validation/verification location from here to
+    // on_synchronized. 
 
     bool show_time_stats = command_line::get_arg(vm, arg_show_time_stats) != 0;
     m_blockchain_storage.set_show_time_stats(show_time_stats);
@@ -1600,6 +1608,25 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------
   void core::on_synchronized()
   {
+    if(init_sync) {
+      MGINFO_YELLOW("After first sync...");
+      if (this->get_target_blockchain_height())
+        m_mempool.update_txpool_from_chain(session_start_height, this->get_target_blockchain_height());
+      MGINFO_YELLOW(
+          "txpool size before sync: "
+          << session_start_txpool
+          << " txpool size after sync: " << m_blockchain_storage.get_txpool_tx_count());
+      MGINFO_YELLOW("Number of txids removed from txpool with lazy validation: " << (session_start_txpool - m_blockchain_storage.get_txpool_tx_count()));
+      if(m_startstophandler) {
+        m_startstophandler->p2p_stop();
+      }
+      MGINFO_YELLOW("Validating tx pool; current size: " << m_blockchain_storage.get_txpool_tx_count());      
+      m_mempool.validate(m_blockchain_storage.get_current_hard_fork_version());
+      if(m_startstophandler) {
+        m_startstophandler->p2p_start();
+      }
+      init_sync = false;
+    }
     m_miner.on_synchronized();
   }
   //-----------------------------------------------------------------------------------------------

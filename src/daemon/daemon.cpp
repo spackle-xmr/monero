@@ -31,6 +31,7 @@
 #include <memory>
 #include <stdexcept>
 #include <boost/algorithm/string/split.hpp>
+#include "cryptonote_core/cryptonote_core.h"
 #include "misc_log_ex.h"
 #include "daemon/daemon.h"
 #include "rpc/daemon_handler.h"
@@ -75,13 +76,15 @@ private:
 public:
   t_core core;
   t_p2p p2p;
+  std::shared_ptr<cryptonote::t_startstophandler> m_startstophandler;
   std::vector<std::unique_ptr<t_rpc>> rpcs;
   std::unique_ptr<zmq_internals> zmq;
 
   t_internals(
       boost::program_options::variables_map const & vm
     )
-    : core{vm}
+    : m_startstophandler(std::make_shared<cryptonote::t_startstophandler>(std::bind(&t_internals::p2p_start, this), std::bind(&t_internals::p2p_stop, this)))
+    , core{vm, m_startstophandler}
     , protocol{vm, core, command_line::get_arg(vm, cryptonote::arg_offline)}
     , p2p{vm, protocol}
     , zmq{nullptr}
@@ -144,6 +147,22 @@ public:
       }
     }
   }
+
+  void p2p_stop() {
+    MGINFO_YELLOW("Disabling p2p connections via p2p_stop method...");
+    this->m_startstophandler->set_max_p2p_peers(p2p.get().get_max_in_public_peers(), p2p.get().get_max_out_public_peers());
+    p2p.get().change_max_in_public_peers(0);
+    p2p.get().change_max_out_public_peers(0);
+    protocol.get().lock_busy_syncing();
+  };
+  
+  void p2p_start() {
+    MGINFO_YELLOW("Enabling p2p connections via p2p_start method...");
+    p2p.get().change_max_in_public_peers(this->m_startstophandler->get_in_max_peers());
+    p2p.get().change_max_out_public_peers(this->m_startstophandler->get_out_max_peers());
+    protocol.get().unlock_busy_syncing();
+  };
+  
 };
 
 void t_daemon::init_options(boost::program_options::options_description & option_spec)

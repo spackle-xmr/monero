@@ -132,6 +132,8 @@ namespace cryptonote
     std::pair<uint32_t, uint32_t> get_next_needed_pruning_stripe() const;
     bool needs_new_sync_connections(epee::net_utils::zone zone) const;
     bool is_busy_syncing();
+    void lock_busy_syncing();
+    void unlock_busy_syncing();
 
   private:
     //----------------- commands handlers ----------------------------------------------
@@ -178,6 +180,7 @@ namespace cryptonote
     std::atomic<bool> m_no_sync;
     std::atomic<bool> m_ask_for_txpool_complement;
     boost::mutex m_sync_lock;
+    boost::unique_lock<boost::mutex> busy_syncing_lock;
     block_queue m_block_queue;
     epee::math_helper::once_a_time_seconds<8> m_idle_peer_kicker;
     epee::math_helper::once_a_time_milliseconds<100> m_standby_checker;

@@ -34,6 +34,7 @@
 #include <vector>
 
 #include "tx_pool.h"
+#include "cryptonote_basic/cryptonote_basic.h"
 #include "cryptonote_tx_utils.h"
 #include "cryptonote_basic/cryptonote_boost_serialization.h"
 #include "cryptonote_config.h"
@@ -1058,6 +1059,67 @@ namespace cryptonote
       ++rit;
     }
     return true;
+  }
+  //------------------------------------------------------------------
+  void tx_memory_pool::update_txpool_from_chain(size_t start_chain_height, size_t end_chain_height){
+    MGINFO_YELLOW("Checking blocks " << start_chain_height << " to "
+                  << end_chain_height << " and removing already mined txids from the txpool");
+    std::vector<cryptonote::transaction> txv;
+    this->get_transactions(txv);
+    std::unordered_set<crypto::hash> txs;
+    std::for_each(txv.begin(), txv.end(), [&txs] (const cryptonote::transaction& tx) {
+      txs.insert(tx.hash);
+    });
+    MGINFO_YELLOW("Size of txid set: " << txs.size());    
+    MGINFO_YELLOW("Current txpool size: " << m_blockchain.get_txpool_tx_count());    
+    std::vector<std::pair<cryptonote::blobdata, block>> blocks;
+    if(!m_blockchain.get_blocks(start_chain_height, end_chain_height - start_chain_height, blocks)) {
+      MGINFO_RED("Couldn't get the blocks ["<< start_chain_height << ", " << end_chain_height << "]");
+    }
+
+    size_t number_of_removed_txids = 0;
+
+    std::for_each(
+        blocks.begin(),
+        blocks.end(),
+        [&](std::pair<cryptonote::blobdata, block>& b) {
+          for (size_t i = 0; i < b.second.tx_hashes.size(); ++i)
+            {
+              crypto::hash txid = b.second.tx_hashes[i];
+              std::for_each(txs.begin(), txs.end(), [&txid](const crypto::hash& t){
+                if(hash_value(t) == hash_value(txid)) {
+                  MGINFO_YELLOW("Found is a match between the txpool and a tx in the blocks. tx in txpool: " << hash_value(t) << " and tx in blocks: " << hash_value(txid) << " are equal.");
+                }
+              });
+              if (txs.find(txid) != txs.end())
+                {
+                  size_t weight;
+                  uint64_t fee;
+                  cryptonote::transaction tx;
+                  cryptonote::blobdata blob;
+                  bool relayed, do_not_relay, double_spend_seen, pruned;
+                  take_tx(
+                      txid,
+                      tx,
+                      blob,
+                      weight,
+                      fee,
+                      relayed,
+                      do_not_relay,
+                      double_spend_seen,
+                      pruned);
+                  number_of_removed_txids++;
+                  MGINFO_YELLOW(
+                      "Removing "
+                      << txid
+                      << " from txpool, since it is already on the chain. tx hash: " << hash_value(txid));
+                }
+            }
+        });
+  MGINFO_YELLOW(
+      "Removed "
+      << number_of_removed_txids
+      << " from txpool during sync (they are already on the chain).");
   }
   //------------------------------------------------------------------
   void tx_memory_pool::get_transaction_backlog(std::vector<tx_backlog_entry>& backlog, bool include_sensitive) const

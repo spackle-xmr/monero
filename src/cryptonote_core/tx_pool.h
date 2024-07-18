@@ -479,6 +479,14 @@ namespace cryptonote
      */
     bool get_pool_info(time_t start_time, bool include_sensitive, size_t max_tx_count, std::vector<std::pair<crypto::hash, tx_details>>& added_txs, std::vector<crypto::hash>& remaining_added_txids, std::vector<crypto::hash>& removed_txs, bool& incremental) const;
 
+    /**
+     * @brief Remove txids from txpool if they are already 
+     * on the chain [start_chain_height, end_chain_height].
+     * IMPORTANT: requires to acquire lock before calling
+     * this method.
+     */
+    void update_txpool_from_chain(size_t start_chain_height, size_t end_chain_height);
+
   private:
 
     /**

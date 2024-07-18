@@ -35,6 +35,8 @@
 // (may contain code and/or modifications by other developers)
 // developer rfree: this code is caller of our new network code, and is modded; e.g. for rate limiting
 
+#include <cryptonote_protocol/cryptonote_protocol_handler.h>
+#include <boost/thread/lock_options.hpp>
 #include <list>
 #include <ctime>
 
@@ -87,8 +89,8 @@ namespace cryptonote
                                                                                                               m_synchronized(offline),
                                                                                                               m_ask_for_txpool_complement(true),
                                                                                                               m_stopping(false),
-                                                                                                              m_no_sync(false)
-
+                                                                                                              m_no_sync(false),
+                                                                                                              busy_syncing_lock(m_sync_lock, boost::defer_lock)
   {
     if(!m_p2p)
       m_p2p = &m_p2p_stub;
@@ -2875,6 +2877,23 @@ skip:
     if (n_out_peers >= get_max_out_peers(zone))
       return false;
     return true;
+  }
+
+
+  template<class t_core>
+  void t_cryptonote_protocol_handler<t_core>::lock_busy_syncing()
+  {
+    MDEBUG("Setting busy_syncing to true and locking the busy_syncing. We unlock it after validation.");
+    this->busy_syncing_lock.lock();
+    return;
+  }
+
+  template<class t_core>
+  void t_cryptonote_protocol_handler<t_core>::unlock_busy_syncing()
+  {
+    MDEBUG("Unlocking busy_syncing.");
+    this->busy_syncing_lock.unlock();
+    return;
   }
   //------------------------------------------------------------------------------------------------------------------------
   template<class t_core>

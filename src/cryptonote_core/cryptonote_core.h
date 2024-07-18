@@ -62,6 +62,31 @@ namespace cryptonote
      const size_t long_term_block_weight_window;
    };
 
+  class t_startstophandler
+  {
+    size_t max_in_peers = 0;
+    size_t max_out_peers = 0;
+  public:
+    std::function<void(void)> p2p_start;
+    std::function<void(void)> p2p_stop;
+    
+    t_startstophandler(std::function<void(void)> p2p_start,
+                       std::function<void(void)> p2p_stop) :
+      p2p_start(p2p_start),
+      p2p_stop(p2p_stop) {};
+    void set_max_p2p_peers(size_t in_peer, size_t out_peer) {
+      this->max_in_peers = in_peer;
+      this->max_out_peers = out_peer;
+    }
+    size_t get_in_max_peers() {
+      return this->max_in_peers;
+    }
+    size_t get_out_max_peers() {
+      return this->max_out_peers;
+    }
+  };
+  
+
   extern const command_line::arg_descriptor<std::string, false, true, 2> arg_data_dir;
   extern const command_line::arg_descriptor<bool, false> arg_testnet_on;
   extern const command_line::arg_descriptor<bool, false> arg_stagenet_on;
@@ -92,8 +117,9 @@ namespace cryptonote
        * sets member variables into a usable state
        *
        * @param pprotocol pre-constructed protocol object to store and use
+       * @param startstophandler to provide p2p component start and stop operation from core
        */
-     core(i_cryptonote_protocol* pprotocol);
+     core(i_cryptonote_protocol* pprotocol, std::shared_ptr<cryptonote::t_startstophandler> startstophandler = nullptr);
 
     /**
      * @copydoc Blockchain::handle_get_objects
@@ -1102,7 +1128,8 @@ namespace cryptonote
      Blockchain& m_blockchain_storage; //!< ref to Blockchain instance in m_bap
 
      i_cryptonote_protocol* m_pprotocol; //!< cryptonote protocol instance
-
+     std::shared_ptr<cryptonote::t_startstophandler> m_startstophandler;
+     
      epee::critical_section m_incoming_tx_lock; //!< incoming transaction lock
 
      //m_miner and m_miner_addres are probably temporary here
@@ -1123,6 +1150,9 @@ namespace cryptonote
      std::atomic<bool> m_starter_message_showed; //!< has the "daemon will sync now" message been shown?
 
      uint64_t m_target_blockchain_height; //!< blockchain height target
+     uint64_t session_start_height = 0;
+     uint64_t session_start_txpool = 0;
+     bool init_sync = false;
 
      network_type m_nettype; //!< which network are we on?
 

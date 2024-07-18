@@ -31,8 +31,8 @@
 #include "blocks/blocks.h"
 #include "cryptonote_core/cryptonote_core.h"
 #include "cryptonote_protocol/cryptonote_protocol_handler.h"
-#include "misc_log_ex.h"
 #include "daemon/command_line_args.h"
+#include "misc_log_ex.h"
 
 #undef MONERO_DEFAULT_LOG_CATEGORY
 #define MONERO_DEFAULT_LOG_CATEGORY "daemon"
@@ -54,14 +54,13 @@ private:
   // variable map could go out of scope before the run method is called
   boost::program_options::variables_map const m_vm_HACK;
 public:
-  t_core(
-      boost::program_options::variables_map const & vm
-    )
-    : m_core{nullptr}
-    , m_vm_HACK{vm}
-  {
-    //initialize core here
-    MGINFO("Initializing core...");
+ t_core(
+        boost::program_options::variables_map const& vm, std::shared_ptr<cryptonote::t_startstophandler> startstophandler = nullptr)
+   : m_core(nullptr, startstophandler),
+     m_vm_HACK{vm}
+ {
+   //initialize core here
+   MGINFO("Initializing core...");
 #if defined(PER_BLOCK_CHECKPOINT)
     const cryptonote::GetCheckpointsCallback& get_checkpoints = blocks::GetCheckpointsData;
 #else
