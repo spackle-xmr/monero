@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2023, The Monero Project
+// Copyright (c) 2014-2024, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -2481,6 +2481,35 @@ namespace wallet_rpc
     typedef epee::misc_utils::struct_init<response_t> response;
   };
 
+  struct COMMAND_RPC_GET_MULTISIG_KEY_EXCHANGE_BOOSTER
+  {
+    struct request_t
+    {
+      std::string password;
+      std::vector<std::string> multisig_info;
+      uint32_t threshold;
+      uint32_t num_signers;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(password)
+        KV_SERIALIZE(multisig_info)
+        KV_SERIALIZE(threshold)
+        KV_SERIALIZE(num_signers)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response_t
+    {
+      std::string multisig_info;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(multisig_info)
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
   struct COMMAND_RPC_SIGN_MULTISIG
   {
     struct request_t
@@ -2700,5 +2729,69 @@ namespace wallet_rpc
     typedef epee::misc_utils::struct_init<response_t> response;
   };
 
+  struct COMMAND_RPC_SETUP_BACKGROUND_SYNC
+  {
+    struct request_t
+    {
+      std::string background_sync_type;
+      std::string wallet_password;
+      std::string background_cache_password;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(background_sync_type)
+        KV_SERIALIZE(wallet_password)
+        KV_SERIALIZE_OPT(background_cache_password, (std::string)"")
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response_t
+    {
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
+  struct COMMAND_RPC_START_BACKGROUND_SYNC
+  {
+    struct request_t
+    {
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response_t
+    {
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<response_t> response;
+  };
+
+  struct COMMAND_RPC_STOP_BACKGROUND_SYNC
+  {
+    struct request_t
+    {
+      std::string wallet_password;
+      std::string seed;
+      std::string seed_offset;
+
+      BEGIN_KV_SERIALIZE_MAP()
+        KV_SERIALIZE(wallet_password)
+        KV_SERIALIZE_OPT(seed, (std::string)"")
+        KV_SERIALIZE_OPT(seed_offset, (std::string)"")
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<request_t> request;
+
+    struct response_t
+    {
+      BEGIN_KV_SERIALIZE_MAP()
+      END_KV_SERIALIZE_MAP()
+    };
+    typedef epee::misc_utils::struct_init<response_t> response;
+  };
 }
 }
