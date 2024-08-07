@@ -868,6 +868,12 @@ namespace nodetool
           "aclc4e2jhhtr44guufbnwk5bzwhaecinax4yip4wr4tjn27sjsfg6zqd.onion:18083",
         };
       }
+      else if (m_nettype == cryptonote::TESTNET)
+      {
+        return {
+          "stressgguj7ugyxtqe7czeoelobeb3cnyhltooueuae2t3avd5ynepid.onion:28084",
+        };
+      }
       return {};
     case epee::net_utils::zone::i2p:
       if (m_nettype == cryptonote::MAINNET)
@@ -876,6 +882,12 @@ namespace nodetool
           "uqj3aphckqtjsitz7kxx5flqpwjlq5ppr3chazfued7xucv3nheq.b32.i2p",
           "vdmnehdjkpkg57nthgnjfuaqgku673r5bpbqg56ix6fyqoywgqrq.b32.i2p",
           "ugnlcdciyhghh2zert7c3kl4biwkirc43ke33jiy5slnd3mv2trq.b32.i2p",
+        };
+      }
+      else if (m_nettype == cryptonote::TESTNET)
+      {
+        return {
+          "stressg4wxpntle5i2mf5emu453vzdhpq22bonukbmc4nntn5bxq.b32.i2p",
         };
       }
       return {};
