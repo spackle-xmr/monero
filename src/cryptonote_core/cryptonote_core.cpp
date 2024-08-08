@@ -943,7 +943,7 @@ namespace cryptonote
   //-----------------------------------------------------------------------------------------------
   size_t core::get_block_sync_size(uint64_t height) const
   {
-    static const uint64_t quick_height = m_nettype == TESTNET ? 2508830 : m_nettype == MAINNET ? 1220516 : 0; // 2508830 is stressnet hardfork height
+    static const uint64_t quick_height = m_nettype == TESTNET ? 2557352 : m_nettype == MAINNET ? 1220516 : 0; // 2557352 is stressnet 251 hardfork height
     size_t res = 0;
     if (block_sync_size > 0)
       res = block_sync_size;
