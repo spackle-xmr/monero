@@ -8,11 +8,11 @@ The anonymity set of running a node on the mainnet Monero network is in the thou
 
 Go to https://github.com/spackle-xmr/monero/releases/latest and download and unpack the node software for your operating system:
 
-- For Linux: `monero-x86_64-linux-gnu-v250.18.x.x.x.tar.bz2`
+- For Linux: `monero-x86_64-linux-gnu-v251.18.x.x.x.tar.bz2`
 
-- For Windows: `monero-x86_64-w64-mingw32-v250.x.x.x.zip`
+- For Windows: `monero-x86_64-w64-mingw32-v251.x.x.x.zip`
 
-- For macOS: `monero-x86_64-apple-darwin-v250.x.x.x.tar.bz2`
+- For macOS: `monero-x86_64-apple-darwin-v251.x.x.x.tar.bz2`
 
 You can also [compile the code from source](https://github.com/moneroexamples/monero-compilation/blob/master/README.md#example-compilation-of-master-branch-ie-development-version-of-monero-on-ubuntu-2204) using the `master` branch.
 
@@ -28,21 +28,15 @@ The stressnet is a hard fork of Monero's main testnet. stressnet was forked from
 
 Some of the stressnet nodes are running from the same IP address. This flag allows your node to connect to multiple nodes from the same IP address.
 
-```bash
---add-priority-node=95.217.143.178:28080 --add-priority-node=45.135.180.21:28080 --add-priority-node=45.135.180.74:28080 --add-priority-node=185.130.45.183:28080 --add-priority-node=95.217.143.100:28080 --add-priority-node=23.145.40.115:28080
-```
-
-These nodes are already in `monerod`'s code as initial seed nodes for the stressnet, but adding them as priority nodes will make your node try to maintain a connection with them throughout the syncing process.
-
 **If you _do not_ already have a testnet node running on your machine, the full terminal command should be:**
 
 ```bash
-./monerod --testnet --max-connections-per-ip=10 --add-priority-node=95.217.143.178:28080 --add-priority-node=45.135.180.21:28080 --add-priority-node=45.135.180.74:28080 --add-priority-node=185.130.45.183:28080 --add-priority-node=95.217.143.100:28080 --add-priority-node=23.145.40.115:28080
+./monerod --testnet --max-connections-per-ip=10
 ```
 
 If you are on Windows, use `monerod.exe` instead of `monerod`.
 
-The first line of the terminal output should say that you are on the stressnet version of `monerod`, which starts with `250`, like `Monero 'Fluorine Fermi' (v250.18.3.3.1-release)`. If it starts with a zero like `v0.18.3.3`, you've started the normal installed `monerod` on your system and you will not be connected to the stressnet. Make sure to include the `./` at the start of the command if you are on Linux.
+The first line of the terminal output should say that you are on the stressnet version of `monerod`, which starts with `251`, like `Monero 'Fluorine Fermi' (v251.18.3.3.0-release)`. If it starts with a zero like `v0.18.3.3`, you've started the normal installed `monerod` on your system and you will not be connected to the stressnet. Make sure to include the `./` at the start of the command if you are on Linux.
 
 **If you _do_ run a testnet node already on the machine:**
 
