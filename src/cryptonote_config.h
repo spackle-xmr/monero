@@ -93,11 +93,16 @@
 #define DIFFICULTY_BLOCKS_ESTIMATE_TIMESPAN             DIFFICULTY_TARGET_V1 //just alias; used by tests
 
 
-#define BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT          10000  //by default, blocks ids count in synchronizing
-#define BLOCKS_IDS_SYNCHRONIZING_MAX_COUNT              25000  //max blocks ids count in synchronizing
-#define BLOCKS_SYNCHRONIZING_DEFAULT_COUNT_PRE_V4       100    //by default, blocks count in blocks downloading
-#define BLOCKS_SYNCHRONIZING_DEFAULT_COUNT              5     //by default, blocks count in blocks downloading
-#define BLOCKS_SYNCHRONIZING_MAX_COUNT                  2048   //must be a power of 2, greater than 128, equal to SEEDHASH_EPOCH_BLOCKS
+#define BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT          10000    //by default, blocks ids count in synchronizing
+#define BLOCKS_IDS_SYNCHRONIZING_MAX_COUNT              25000    //max blocks ids count in synchronizing
+#define BLOCKS_SYNCHRONIZING_DEFAULT_COUNT_PRE_V4       100      //by default, blocks count in blocks downloading
+#define BLOCKS_SYNCHRONIZING_DEFAULT_COUNT              20       //by default, blocks count in blocks downloading
+#define BLOCKS_MEDIAN_WINDOW                            100      //by default, compute median weights of last 100 blocks
+#define BATCH_MAX_WEIGHT                                20       //by default, maximum size of batch in [mB]
+#define BATCH_MAX_ALLOWED_WEIGHT                        50       //maximum allowed size of batch in [mB]
+#define BLOCKS_HUGE_THRESHOLD_SIZE                      ((BATCH_MAX_WEIGHT * 1000000) / 2) //blocks that we consider huge [B]
+#define BLOCKS_SYNCHRONIZING_MAX_COUNT                  2048     //must be a power of 2, greater than 128, equal to SEEDHASH_EPOCH_BLOCKS
+
 
 #define CRYPTONOTE_MEMPOOL_TX_LIVETIME                    (86400*3) //seconds, three days
 #define CRYPTONOTE_MEMPOOL_TX_FROM_ALT_BLOCK_LIVETIME     604800 //seconds, one week
