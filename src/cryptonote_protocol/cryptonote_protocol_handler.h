@@ -112,6 +112,15 @@ namespace cryptonote
     void log_connections();
     std::list<connection_info> get_connections();
     const block_queue &get_block_queue() const { return m_block_queue; }
+    const std::uint64_t max_average_of_blocksize_in_queue() {
+      std::vector<std::uint64_t> average_blocksize{0};
+      m_block_queue.foreach([&](const cryptonote::block_queue::span &span) {
+        average_blocksize.push_back(span.size / span.nblocks);
+        return true; // we don't care about the return value
+      });
+      MINFO("Maximum average of blocksize for current batches : " << *std::max_element(average_blocksize.begin(), average_blocksize.end()));
+      return *std::max_element(average_blocksize.begin(), average_blocksize.end());
+    }
     void stop();
     void on_connection_close(cryptonote_connection_context &context);
     void set_max_out_peers(epee::net_utils::zone zone, unsigned int max) { CRITICAL_REGION_LOCAL(m_max_out_peers_lock); m_max_out_peers[zone] = max; }
@@ -167,6 +176,7 @@ namespace cryptonote
     size_t skip_unneeded_hashes(cryptonote_connection_context& context, bool check_block_queue) const;
     bool request_txpool_complement(cryptonote_connection_context &context);
     void hit_score(cryptonote_connection_context &context, int32_t score);
+    void calculate_dynamic_span(double blocks_per_seconds);
 
     t_core& m_core;
 
@@ -191,6 +201,9 @@ namespace cryptonote
     uint64_t m_sync_download_chain_size, m_sync_download_objects_size;
     size_t m_block_download_max_size;
     bool m_sync_pruned_blocks;
+    size_t m_span_time;
+    size_t m_span_limit;
+    size_t m_bss;
 
     // Values for sync time estimates
     boost::posix_time::ptime m_sync_start_time;
