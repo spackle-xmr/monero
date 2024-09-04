@@ -707,8 +707,8 @@ namespace nodetool
       //full_addrs.insert("37.187.74.171:28080");
       //full_addrs.insert("77.172.183.193:28080");
       full_addrs.insert("95.217.143.178:28080");
-      full_addrs.insert("97.150.29.201:28080");
-      full_addrs.insert("66.78.40.132:28080");
+      full_addrs.insert("38.175.192.151:28080");
+      full_addrs.insert("167.88.165.2:28080");
     }
     else if (m_nettype == cryptonote::STAGENET)
     {
@@ -887,7 +887,7 @@ namespace nodetool
       else if (m_nettype == cryptonote::TESTNET)
       {
         return {
-          "stressg4wxpntle5i2mf5emu453vzdhpq22bonukbmc4nntn5bxq.b32.i2p",
+          "stress2eamydytmwvsfuv2767fbxo4qzarlvywaiqimd3eatvcoa.b32.i2p",
         };
       }
       return {};
