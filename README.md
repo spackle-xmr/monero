@@ -48,6 +48,22 @@ You will need to store the blockchain in another place to avoid clashes with you
 
 If you open the node's p2p port (`28080` by default) on your firewall and network, other nodes can make incoming connections to your nodes. This is helpful, but not necessary to participate in stressnet.
 
+# Creating checkpoints for fast sync
+
+For future stressnet maintainers: To create the checkpoint file, input
+```bash
+ ./monero-blockchain-export --testnet --output-file testnet_blocks.dat --block-stop 2851000 --blocksdat
+```
+Change 2851000 to the current height. Then put the file in `src/blocks/testnet_blocks.dat`.
+
+Then input the result of
+```bash
+sha256sum testnet_blocks.data
+``` 
+in the `expected_block_hashes_hash_testnet` line of `src/cryptonote_core/blockchain.cpp`.
+See https://github.com/spackle-xmr/monero/pull/35 for the example.
+
+
 ## Original Monero README:
 
 # Monero
