@@ -948,13 +948,21 @@ namespace cryptonote
     uint64_t get_difficulty_target() const;
 
     /**
-     * @brief remove transactions from the transaction pool (if present)
+     * @brief remove provided transactions from the transaction pool (if present)
      *
      * @param txids a list of hashes of transactions to be removed
      *
      * @return false if any removals fail, otherwise true
      */
     bool flush_txes_from_pool(const std::vector<crypto::hash> &txids);
+    /**
+     * @brief remove provided transactions from the transaction pool (if present)
+     *
+     * @param txs a list of transactions to be removed
+     *
+     * @return false if any removals fail, otherwise true
+     */
+    bool flush_txes_from_pool(const std::vector<transaction> &txs);
 
     /**
      * @brief return a histogram of outputs on the blockchain
@@ -1093,10 +1101,10 @@ namespace cryptonote
 
     /**
      * @brief removes blocks from the top of the blockchain
-     *
+     * @param is_fast_mode if fast mode is enabled doesnt add trx to pool
      * @param nblocks number of blocks to be removed
      */
-    void pop_blocks(uint64_t nblocks);
+    void pop_blocks(uint64_t nblocks, bool is_fast_mode = false);
 
     /**
      * @brief checks whether a given block height is included in the precompiled block hash area
@@ -1331,10 +1339,10 @@ namespace cryptonote
 
     /**
      * @brief removes the most recent block from the blockchain
-     *
+     * @param is_fast_mode if fast mode is enabled doesnt add trx to pool
      * @return the block removed
      */
-    block pop_block_from_blockchain();
+    block pop_block_from_blockchain(bool is_fast_mode = false);
 
     /**
      * @brief validate and add a new block to the end of the blockchain

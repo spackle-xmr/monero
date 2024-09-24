@@ -154,7 +154,7 @@ public:
 
   bool sync_info();
 
-  bool pop_blocks(uint64_t num_blocks);
+  bool pop_blocks(uint64_t num_blocks, std::string fast_mode_option = "");
 
   bool prune_blockchain();
 

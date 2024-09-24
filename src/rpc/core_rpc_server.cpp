@@ -2891,7 +2891,7 @@ namespace cryptonote
     RPC_TRACKER(flush_txpool);
 
     bool failed = false;
-    std::vector<crypto::hash> txids;
+    
     if (req.txids.empty())
     {
       std::vector<transaction> pool_txs;
@@ -2901,13 +2901,15 @@ namespace cryptonote
         res.status = "Failed to get txpool contents";
         return true;
       }
-      for (const auto &tx: pool_txs)
+      if (!m_core.get_blockchain_storage().flush_txes_from_pool(pool_txs))
       {
-        txids.push_back(cryptonote::get_transaction_hash(tx));
+        res.status = "Failed to remove one or more tx(es)";
+        return true;
       }
     }
     else
     {
+      std::vector<crypto::hash> txids;
       for (const auto &str: req.txids)
       {
         crypto::hash txid;
@@ -2920,19 +2922,15 @@ namespace cryptonote
           txids.push_back(txid);
         }
       }
+      if (!m_core.get_blockchain_storage().flush_txes_from_pool(txids))
+      {
+        res.status = "Failed to remove one or more tx(es)";
+        return true;
+      }
     }
-    if (!m_core.get_blockchain_storage().flush_txes_from_pool(txids))
-    {
-      res.status = "Failed to remove one or more tx(es)";
-      return true;
-    }
-
     if (failed)
     {
-      if (txids.empty())
-        res.status = "Failed to parse txid";
-      else
-        res.status = "Failed to parse some of the txids";
+        res.status = "Failed to parse some or all of the txids";
       return true;
     }
 
@@ -3251,9 +3249,7 @@ namespace cryptonote
   bool core_rpc_server::on_pop_blocks(const COMMAND_RPC_POP_BLOCKS::request& req, COMMAND_RPC_POP_BLOCKS::response& res, const connection_context *ctx)
   {
     RPC_TRACKER(pop_blocks);
-
-    m_core.get_blockchain_storage().pop_blocks(req.nblocks);
-
+    m_core.get_blockchain_storage().pop_blocks(req.nblocks, req.fast_mode_option == "fast");
     res.height = m_core.get_current_blockchain_height();
     res.status = CORE_RPC_STATUS_OK;
 

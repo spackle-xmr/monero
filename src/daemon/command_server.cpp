@@ -299,8 +299,8 @@ t_command_server::t_command_server(
     m_command_lookup.set_handler(
       "pop_blocks"
     , std::bind(&t_command_parser_executor::pop_blocks, &m_parser, p::_1)
-    , "pop_blocks <nblocks>"
-    , "Remove blocks from end of blockchain"
+    , "pop_blocks <nblocks> <is_fast_mode>"
+    , "Remove blocks from end of blockchain if option is_fast_mode is set to 'fast' it will do so quicker"
     );
     m_command_lookup.set_handler(
       "rpc_payments"

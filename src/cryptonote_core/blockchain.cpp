@@ -549,7 +549,7 @@ bool Blockchain::deinit()
 //------------------------------------------------------------------
 // This function removes blocks from the top of blockchain.
 // It starts a batch and calls private method pop_block_from_blockchain().
-void Blockchain::pop_blocks(uint64_t nblocks)
+void Blockchain::pop_blocks(uint64_t nblocks, bool is_fast_mode)
 {
   uint64_t i = 0;
   CRITICAL_REGION_LOCAL(m_tx_pool);
@@ -564,7 +564,7 @@ void Blockchain::pop_blocks(uint64_t nblocks)
       nblocks = std::min(nblocks, blockchain_height - 1);
     while (i < nblocks)
     {
-      pop_block_from_blockchain();
+      pop_block_from_blockchain(is_fast_mode);
       ++i;
     }
   }
@@ -591,7 +591,7 @@ void Blockchain::pop_blocks(uint64_t nblocks)
 // This function tells BlockchainDB to remove the top block from the
 // blockchain and then returns all transactions (except the miner tx, of course)
 // from it to the tx_pool
-block Blockchain::pop_block_from_blockchain()
+block Blockchain::pop_block_from_blockchain(bool is_fast_mode)
 {
   LOG_PRINT_L3("Blockchain::" << __func__);
   CRITICAL_REGION_LOCAL(m_blockchain_lock);
@@ -608,6 +608,10 @@ block Blockchain::pop_block_from_blockchain()
   try
   {
     m_db->pop_block(popped_block, popped_txs);
+    if(is_fast_mode)
+    {
+      popped_txs.clear();
+    }
   }
   // anything that could cause this to throw is likely catastrophic,
   // so we re-throw
@@ -4030,13 +4034,26 @@ bool Blockchain::flush_txes_from_pool(const std::vector<crypto::hash> &txids)
   bool res = true;
   for (const auto &txid: txids)
   {
-    cryptonote::transaction tx;
-    cryptonote::blobdata txblob;
-    size_t tx_weight;
-    uint64_t fee;
-    bool relayed, do_not_relay, double_spend_seen, pruned;
     MINFO("Removing txid " << txid << " from the pool");
-    if(m_tx_pool.have_tx(txid, relay_category::all) && !m_tx_pool.take_tx(txid, tx, txblob, tx_weight, fee, relayed, do_not_relay, double_spend_seen, pruned))
+    if(m_tx_pool.have_tx(txid, relay_category::all) && !m_tx_pool.remove_tx(txid))
+    {
+      MERROR("Failed to remove txid " << txid << " from the pool");
+      res = false;
+    }
+  }
+  return res;
+}
+//------------------------------------------------------------------
+bool Blockchain::flush_txes_from_pool(const std::vector<transaction> &txs)
+{
+  CRITICAL_REGION_LOCAL(m_tx_pool);
+
+  bool res = true;
+  for (const auto &tx: txs)
+  {
+    crypto::hash txid = get_transaction_hash(tx); 
+    MINFO("Removing txid " << txid << " from the pool"); 
+    if(m_tx_pool.have_tx(txid, relay_category::all) && !m_tx_pool.remove_tx(tx,txid))
     {
       MERROR("Failed to remove txid " << txid << " from the pool");
       res = false;
