@@ -921,21 +921,23 @@ bool t_command_parser_executor::sync_info(const std::vector<std::string>& args)
 
 bool t_command_parser_executor::pop_blocks(const std::vector<std::string>& args)
 {
-  if (args.size() != 1)
+  if (args.size() < 1 || args.size() > 2)
   {
-    std::cout << "Invalid syntax: One parameter expected. For more details, use the help command." << std::endl;
+    std::cout << "Invalid syntax: One or two parameter expected. For more details, use the help command." << std::endl;
     return true;
   }
-
+  std::string fast_mode_option = "";
+  if(args.size()==2)
+    fast_mode_option = boost::lexical_cast<std::string>(args[1]);
   try
   {
-    uint64_t nblocks = boost::lexical_cast<uint64_t>(args[0]);
+    uint64_t nblocks = boost::lexical_cast<uint64_t>(args[0]);  
     if (nblocks < 1)
     {
       std::cout << "Invalid syntax: Number of blocks must be greater than 0. For more details, use the help command." << std::endl;
       return true;
     }
-    return m_executor.pop_blocks(nblocks);
+    return m_executor.pop_blocks(nblocks, fast_mode_option);
   }
   catch (const boost::bad_lexical_cast&)
   {

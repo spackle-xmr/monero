@@ -528,6 +528,81 @@ namespace cryptonote
     ++m_cookie;
     return true;
   }
+  //-----------------------------------------------------------------
+  bool tx_memory_pool::remove_tx(const transaction &tx,const crypto::hash &id){
+    CRITICAL_REGION_LOCAL(m_transactions_lock);
+    CRITICAL_REGION_LOCAL1(m_blockchain);
+    bool sensitive = false;
+    try
+    {
+      LockedTXN lock(m_blockchain.get_db());
+      txpool_tx_meta_t meta;
+      if (!m_blockchain.get_txpool_tx_meta(id, meta))
+      {
+        MERROR("Failed to find tx_meta in txpool");
+        return false;
+      }
+      sensitive = !meta.matches(relay_category::broadcasted);
+      // remove first, in case this throws, so key images aren't removed
+      m_blockchain.remove_txpool_tx(id);
+      reduce_txpool_weight(meta.weight);
+      remove_transaction_keyimages(tx, id);
+      lock.commit();
+    }
+    catch (const std::exception &e)
+    {
+      MERROR("Failed to remove tx from txpool: " << e.what());
+      return false;
+    }
+
+    remove_tx_from_transient_lists(find_tx_in_sorted_container(id), id, sensitive);
+    ++m_cookie;
+    return true;
+   }
+  //-----------------------------------------------------------------
+  bool tx_memory_pool::remove_tx(const crypto::hash &id){
+    CRITICAL_REGION_LOCAL(m_transactions_lock);
+    CRITICAL_REGION_LOCAL1(m_blockchain);
+    transaction tx;
+    cryptonote::blobdata txblob;
+    bool sensitive = false;
+    try
+    {
+      LockedTXN lock(m_blockchain.get_db());
+      txpool_tx_meta_t meta;
+      if (!m_blockchain.get_txpool_tx_meta(id, meta))
+      {
+        MERROR("Failed to find tx_meta in txpool");
+        return false;
+      }
+      txblob = m_blockchain.get_txpool_tx_blob(id, relay_category::all);
+      auto ci = m_parsed_tx_cache.find(id);
+      if (ci != m_parsed_tx_cache.end())
+      {
+        tx = ci->second;
+      }
+      else if (!(meta.pruned ? parse_and_validate_tx_base_from_blob(txblob, tx) : parse_and_validate_tx_prefix_from_blob(txblob, tx)))
+      {
+        MERROR("Failed to parse tx from txpool");
+        return false;
+      }
+      sensitive = !meta.matches(relay_category::broadcasted);
+      // remove first, in case this throws, so key images aren't removed
+      m_blockchain.remove_txpool_tx(id);
+      reduce_txpool_weight(meta.weight);
+      remove_transaction_keyimages(tx, id);
+      lock.commit();
+    }
+    catch (const std::exception &e)
+    {
+      MERROR("Failed to remove tx from txpool: " << e.what());
+      return false;
+    }
+
+    remove_tx_from_transient_lists(find_tx_in_sorted_container(id), id, sensitive);
+    ++m_cookie;
+    return true;
+   }
   //---------------------------------------------------------------------------------
   bool tx_memory_pool::take_tx(const crypto::hash &id, transaction &tx, cryptonote::blobdata &txblob, size_t& tx_weight, uint64_t& fee, bool &relayed, bool &do_not_relay, bool &double_spend_seen, bool &pruned)
   {

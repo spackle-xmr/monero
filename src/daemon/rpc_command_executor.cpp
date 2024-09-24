@@ -2317,13 +2317,14 @@ bool t_rpc_command_executor::sync_info()
     return true;
 }
 
-bool t_rpc_command_executor::pop_blocks(uint64_t num_blocks)
+bool t_rpc_command_executor::pop_blocks(uint64_t num_blocks, std::string fast_mode_option)
 {
   cryptonote::COMMAND_RPC_POP_BLOCKS::request req;
   cryptonote::COMMAND_RPC_POP_BLOCKS::response res;
   std::string fail_message = "pop_blocks failed";
-
   req.nblocks = num_blocks;
+  
+  req.fast_mode_option = fast_mode_option;
   if (m_is_rpc)
   {
     if (!m_rpc_client->rpc_request(req, res, "/pop_blocks", fail_message.c_str()))
